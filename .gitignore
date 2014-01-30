@@ -1,0 +1,6 @@
+#Ignore files build by Visual Studio
+*.suo
+*.user
+bin/
+obj/
+_Resharper*
