@@ -13,7 +13,7 @@
 ## Overview
 
 scres is just a simple console application to edit the Variables.txt from Starcraft II. Since I'm using different monitors I need to change the resolution all the time.
-if the current hight is set to 1200 it changes it to 1080 and vice versa.
+The tool gets the height of your current resolution, updates the according config entry and launches the "starcraft II.exe". 
 
 ## Requirements
 
