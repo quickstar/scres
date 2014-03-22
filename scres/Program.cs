@@ -10,32 +10,57 @@ namespace scres
 {
 	internal class Program
 	{
+		private const string VariablesTxt = "Variables.txt";
+		private const string D3PrefsTxt = "D3Prefs.txt";
+
 		private static void Main(string[] args)
 		{
 			string myDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 			string scFolderPath = Path.Combine(myDocumentsPath, "StarCraft II");
-			string fullVariablesPath = Path.Combine(scFolderPath, "Variables.txt");
-			string variablesContent = File.ReadAllText(fullVariablesPath);
-			Console.ForegroundColor = ConsoleColor.Red;
+			string diabloFolderPath = Path.Combine(myDocumentsPath, "Diablo III");
 
+			string scConfigContent = ReadFileContent(scFolderPath, VariablesTxt);
+			string diabloConfigContent = ReadFileContent(diabloFolderPath, D3PrefsTxt);
 			int monitorHeight = Screen.PrimaryScreen.Bounds.Height;
 
-			Regex regex = new Regex(@"height=(\d+)");
-			Match match = regex.Match(variablesContent);
+			Console.ForegroundColor = ConsoleColor.Red;			
 
-			if (match.Success)
+			Regex scRegex = new Regex(@"(height)(=)()(\d+)");
+			Regex diabloRegex = new Regex(@"(DisplayModeUIOptHeight)( )("")(\d+)\""");
+
+			Match scMatch = scRegex.Match(scConfigContent);
+			Match dibloMatch = diabloRegex.Match(diabloConfigContent);
+
+			ReplaceMatch(scMatch, monitorHeight, scConfigContent, scFolderPath, VariablesTxt);
+			ReplaceMatch(dibloMatch, monitorHeight, diabloConfigContent, diabloFolderPath, D3PrefsTxt);
+
+			string starCraftInstallPath = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\StarCraft II\", "InstallLocation", string.Empty).ToString();
+			if (!string.IsNullOrEmpty(starCraftInstallPath))
 			{
-				string fullString = match.Captures[0].Value;
-				int configHeight = int.Parse(match.Groups[1].Captures[0].Value);
+				starCraftInstallPath = Path.Combine(starCraftInstallPath, "StarCraft II.exe");
+				Process.Start(starCraftInstallPath);
+			}
+		}
+
+		private static void ReplaceMatch(Match scMatch, int monitorHeight, string scConfigContent, string scFolderPath, string fileName)
+		{
+			if (scMatch.Success)
+			{
+				string fullString = scMatch.Captures[0].Value;
+
+				string variablesName = scMatch.Groups[1].Captures[0].Value;
+				string delimiter = scMatch.Groups[2].Captures[0].Value;
+				string valueEnclosingCharacter = scMatch.Groups[3].Captures[0].Value;
+				int configHeight = int.Parse(scMatch.Groups[4].Captures[0].Value);
 
 				if (configHeight != monitorHeight)
 				{
 					Console.WriteLine("Current Height: {0}", configHeight);
 					Console.ForegroundColor = ConsoleColor.Yellow;
 					Console.WriteLine("Changing to {0}", monitorHeight);
-					variablesContent = variablesContent.Replace(fullString, string.Format(CultureInfo.InvariantCulture, "height={0}", monitorHeight));
+					scConfigContent = scConfigContent.Replace(fullString, string.Format(CultureInfo.InvariantCulture, "{0}{1}{2}{3}{2}", variablesName, delimiter, valueEnclosingCharacter, monitorHeight));
 					Console.ForegroundColor = ConsoleColor.Green;
-					File.WriteAllText(fullVariablesPath, variablesContent);
+					WriteAllText(scFolderPath, fileName, scConfigContent);
 				}
 				else
 				{
@@ -49,13 +74,18 @@ namespace scres
 				Console.WriteLine("Something bad happened to the config file... go check it!");
 				Console.ReadLine();
 			}
+		}
 
-			string starCraftInstallPath = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\StarCraft II\", "InstallLocation", string.Empty).ToString();
-			if (!string.IsNullOrEmpty(starCraftInstallPath))
-			{
-				starCraftInstallPath = Path.Combine(starCraftInstallPath, "StarCraft II.exe");
-				Process.Start(starCraftInstallPath);
-			}
+		private static void WriteAllText(string path, string fileName, string content)
+		{
+			string fullVariablesPath = Path.Combine(path, fileName);
+			File.WriteAllText(fullVariablesPath, content);
+		}
+
+		private static string ReadFileContent(string path, string fileName)
+		{
+			string fullVariablesPath = Path.Combine(path, fileName);
+			return File.ReadAllText(fullVariablesPath);
 		}
 	}
 }
